@@ -1,5 +1,6 @@
 package org.example.controller.action;
 
+import org.example.model.Factory.ShapeState;
 import org.example.model.Model;
 import org.example.model.MyShape;
 import org.example.model.Factory.ShapeFactory;
@@ -11,6 +12,8 @@ public class ActionDraw implements AppAction {
     private Point secondPoint;
     private Model model;
     private ShapeFactory shapeFactory;
+
+    private ShapeState state;
 
     public ActionDraw(Model model) {
         this.model = model;
