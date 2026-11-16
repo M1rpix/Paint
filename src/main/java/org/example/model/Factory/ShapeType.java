@@ -9,10 +9,10 @@ import java.awt.geom.Rectangle2D;
 public enum ShapeType {
     RECTANGULAR_SHAPE {
         @Override
-        public MyShape createShape(Color color, FillBehavior fillBehavior) {
+        public MyShape createShape(FillBehavior fillBehavior, Color color) {
             return new MyShape(color, new Rectangle2D.Double(), fillBehavior);
         }
     };
 
-    public abstract MyShape createShape(Color color, FillBehavior fillBehavior);
+    public abstract MyShape  createShape(FillBehavior fillBehavior, Color color);
 }

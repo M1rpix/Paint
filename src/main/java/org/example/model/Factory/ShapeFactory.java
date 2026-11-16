@@ -1,16 +1,39 @@
 package org.example.model.Factory;
 
+import org.example.model.Factory.ShapeType;
 import org.example.model.MyShape;
 import org.example.model.fill.Fill;
 import org.example.model.fill.FillBehavior;
 import org.example.model.fill.NoFill;
 
 import java.awt.*;
-import java.awt.geom.Rectangle2D;
 
 public class ShapeFactory {
-    public MyShape createShape(ShapeType shapeType, Color color, boolean infill){
-        FillBehavior fillBehavior = infill ? new Fill() : new NoFill();
-        return shapeType.createShape(color, fillBehavior);
+
+    private static ShapeFactory instanse;
+    private ShapeState defaultShape;
+
+    private ShapeFactory() {
+        defaultShape = new ShapeState(ShapeType.RECTANGULAR_SHAPE, Color.RED, false);
+    }
+
+    public static ShapeFactory getInstanse() {
+        synchronized (ShapeFactory.class) {
+            if (instanse == null) {
+                instanse = new ShapeFactory();
+            }
+            return instanse;
+        }
+    }
+
+    public MyShape createShape(ShapeType shapeType, Color color, boolean isFill) {
+        FillBehavior fillBehavior = isFill ? new Fill() : new NoFill();
+        return shapeType.createShape(fillBehavior, color);
+    }
+    public  MyShape createShape(ShapeState shapeState) {
+        return  createShape(shapeState.getShapeType(), shapeState.getColor(), shapeState.isFill());
+    }
+    public MyShape createDefaultShape() {
+        return createShape(defaultShape);
     }
 }

@@ -26,7 +26,7 @@ public class MyPanel extends JPanel implements Observer {
         addMouseMotionListener(new MouseMotionAdapter() {
             @Override
             public void mouseDragged(MouseEvent arg0) {
-                controller.mouseDaragged(arg0.getPoint());
+                controller.mouseDragged(arg0.getPoint());
             }
         });
     }

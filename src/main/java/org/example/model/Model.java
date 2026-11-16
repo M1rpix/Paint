@@ -35,4 +35,7 @@ public class Model extends Observable {
             shape.draw(g);
         }
     }
+
+    public void setDrawableShape(MyShape shape) {
+    }
 }
