@@ -17,7 +17,7 @@ public class ActionDraw implements AppAction {
     public ActionDraw(Model model, ShapeState shapeState) {
         this.model = model;
         this.shapeState = shapeState;
-        shapeFactory = ShapeFactory.getInstanse();
+        shapeFactory = ShapeFactory.getInstance();
         model.setDrawableShape(shapeFactory.createShape(shapeState));
     }
 

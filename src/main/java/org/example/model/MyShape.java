@@ -48,6 +48,10 @@ public class MyShape {
 
     public void setShape(RectangularShape shape) {
         this.shape = shape;
+        // FillBehavior рисует ту фигуру, которую ему передали, поэтому её тоже обновляем.
+        if (fb != null) {
+            fb.setShape(shape);
+        }
     }
 
     public void setFrame(Point2D x, Point2D y) {
@@ -56,6 +60,5 @@ public class MyShape {
 
     void draw(Graphics2D g) {
         fb.draw(g);
-
     }
 }

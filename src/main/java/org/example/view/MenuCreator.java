@@ -1,6 +1,5 @@
 package org.example.view;
 
-import lombok.Setter;
 import org.example.controller.Controller;
 import org.example.model.Factory.ShapeState;
 import org.example.model.Factory.ShapeType;
@@ -14,10 +13,8 @@ import java.net.URL;
 import java.util.ArrayList;
 
 public class MenuCreator {
-    private static MenuCreator instanse;
-    @Setter
+    private static MenuCreator instance;
     private ShapeState shapeState;
-    @Setter
     private Controller controller;
 
     private JRadioButtonMenuItem fillItem;
@@ -27,13 +24,21 @@ public class MenuCreator {
 
     }
 
-    public static MenuCreator getInstanse() {
+    public static MenuCreator getInstance() {
         synchronized (MenuCreator.class) {
-            if (instanse == null) {
-                instanse = new MenuCreator();
+            if (instance == null) {
+                instance = new MenuCreator();
             }
-            return instanse;
+            return instance;
         }
+    }
+
+    public void setShapeState(ShapeState shapeState) {
+        this.shapeState = shapeState;
+    }
+
+    public void setController(Controller controller) {
+        this.controller = controller;
     }
 
     public JMenuBar createMenu() {
@@ -44,8 +49,8 @@ public class MenuCreator {
         JMenu colorMenu = createColorMenu();
         jMenuBar.add(colorMenu);
 
-        JMenu FillMenu = createFillMenu();
-        jMenuBar.add(FillMenu);
+        JMenu fillMenu = createFillMenu();
+        jMenuBar.add(fillMenu);
 
         return jMenuBar;
     }
@@ -64,12 +69,12 @@ public class MenuCreator {
         URL fillUrl = getClass().getClassLoader().getResource("ico/fill_16x16.png");
         ImageIcon fillIco = fillUrl == null ? null : new ImageIcon(fillUrl);
         AppCommand fillCommand = new SwitchFill(true, shapeState, fillItem, noFillItem);
-        menuItems.add(new CommandActionListener("С Заливкой", fillIco, fillCommand));
+        menuItems.add(new CommandActionListener("С заливкой", fillIco, fillCommand));
 
         URL noFillUrl = getClass().getClassLoader().getResource("ico/no_fill_16x16.png");
         ImageIcon noFillIco = noFillUrl == null ? null : new ImageIcon(noFillUrl);
         AppCommand noFillCommand = new SwitchFill(false, shapeState, fillItem, noFillItem);
-        menuItems.add(new CommandActionListener("Без Заливки", noFillIco, noFillCommand));
+        menuItems.add(new CommandActionListener("Без заливки", noFillIco, noFillCommand));
 
         return menuItems;
     }
@@ -85,9 +90,10 @@ public class MenuCreator {
 
         return actionMenu;
     }
+
     private JMenu createFillMenu() {
         ButtonGroup group = new ButtonGroup();
-        JMenu fillMenu = new JMenu();
+        JMenu fillMenu = new JMenu("Заливка");
 
         fillItem = new JRadioButtonMenuItem("С заливкой", true);
         noFillItem = new JRadioButtonMenuItem("Без заливки", false);
@@ -110,13 +116,18 @@ public class MenuCreator {
         shapeMenu.add(redItem);
         group.add(redItem);
 
-        JRadioButtonMenuItem blueItem = new JRadioButtonMenuItem("Синий", true);
+        JRadioButtonMenuItem blueItem = new JRadioButtonMenuItem("Синий", false);
         blueItem.addActionListener(action -> shapeState.setColor(Color.BLUE));
         shapeMenu.add(blueItem);
         group.add(blueItem);
 
         JRadioButtonMenuItem rgbItem = new JRadioButtonMenuItem("Выбор цвета");
-        rgbItem.addActionListener(action -> shapeState.setColor(JColorChooser.showDialog(null, "Выбор цвета", Color.BLACK)));
+        rgbItem.addActionListener(action -> {
+            Color color = JColorChooser.showDialog(null, "Выбор цвета", shapeState.getColor());
+            if (color != null) {          // пользователь мог нажать "Отмена"
+                shapeState.setColor(color);
+            }
+        });
         shapeMenu.add(rgbItem);
         group.add(rgbItem);
 
@@ -126,7 +137,7 @@ public class MenuCreator {
     private JMenu createShapeMenu() {
         ButtonGroup group = new ButtonGroup();
         JMenu shapeMenu = new JMenu("Фигура");
-        JRadioButtonMenuItem squareItem = new JRadioButtonMenuItem("Прямоугольнык", true);
+        JRadioButtonMenuItem squareItem = new JRadioButtonMenuItem("Прямоугольник", true);
         squareItem.addActionListener(action -> shapeState.setShapeType(ShapeType.RECTANGULAR_SHAPE));
         shapeMenu.add(squareItem);
         group.add(squareItem);

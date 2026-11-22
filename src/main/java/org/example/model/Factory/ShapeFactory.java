@@ -9,19 +9,19 @@ import java.awt.*;
 
 public class ShapeFactory {
 
-    private static ShapeFactory instanse;
-    private ShapeState defaultShape;
+    private static ShapeFactory instance;
+    private final ShapeState defaultShape;
 
     private ShapeFactory() {
         defaultShape = new ShapeState(ShapeType.RECTANGULAR_SHAPE, Color.RED, false);
     }
 
-    public static ShapeFactory getInstanse() {
+    public static ShapeFactory getInstance() {
         synchronized (ShapeFactory.class) {
-            if (instanse == null) {
-                instanse = new ShapeFactory();
+            if (instance == null) {
+                instance = new ShapeFactory();
             }
-            return instanse;
+            return instance;
         }
     }
 

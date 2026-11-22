@@ -6,42 +6,45 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Observable;
 
+/**
+ * Модель рисунка: хранит фигуры и уведомляет наблюдателей (панель) об изменениях.
+ * Внимание: java.util.Observable объявлен устаревшим (deprecated) начиная с Java 9.
+ */
 public class Model extends Observable {
-
-    public void setShapeList(List<MyShape> shapeList) {
-        this.shapeList = shapeList;
-    }
 
     private MyShape drawableShape;
     private List<MyShape> shapeList;
-    private Model shape;
 
     public Model() {
         this.shapeList = new ArrayList<>();
     }
 
+    public void setShapeList(List<MyShape> shapeList) {
+        this.shapeList = shapeList;
+    }
+
     public void addShape(MyShape shape) {
         shapeList.add(shape);
     }
-    public void setMyShape(MyShape myShape) {
-        this.drawableShape = myShape;
+
+    public void setDrawableShape(MyShape shape) {
+        drawableShape = shape;
     }
 
     public void changeShape(Point2D x, Point2D y) {
+        if (drawableShape == null) {
+            return;
+        }
         drawableShape.setFrame(x, y);
         this.setChanged();
         this.notifyObservers();
     }
 
     public void draw(Graphics2D g) {
-        drawableShape.draw(g);
-        shapeList.forEach(shape -> shape.draw(g));
+        // drawableShape уже лежит в shapeList, поэтому рисуем только список —
+        // иначе во время протяжки фигура рисуется дважды.
         for (MyShape shape : shapeList) {
             shape.draw(g);
         }
-    }
-
-    public void setDrawableShape(MyShape shape) {
-        drawableShape = shape;
     }
 }

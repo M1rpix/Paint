@@ -5,14 +5,13 @@ import org.example.controller.action.AppAction;
 import org.example.model.Model;
 import org.example.model.Factory.ShapeState;
 import org.example.model.Factory.ShapeType;
+import org.example.view.MenuCreator;
 import org.example.view.MyFrame;
 import org.example.view.MyPanel;
-import org.example.view.MenuCreator;
 
 import javax.swing.*;
 import java.awt.*;
 
-// TODO: Сделать singleton класс
 public class Controller {
 
     private static Controller instance;
@@ -20,30 +19,27 @@ public class Controller {
     private final MyFrame frame;
     private final MyPanel panel;
     private AppAction action;
-    private ShapeState shapeState;
-
+    private final ShapeState shapeState;
 
     private Controller() {
         model = new Model();
 
         panel = new MyPanel(this);
         model.addObserver(panel);
-        frame = new MyFrame();
-        shapeState = new ShapeState(ShapeType.RECTANGULAR_SHAPE, Color.RED, true );
-        action = new ActionDraw(model, shapeState);
-        frame.setPanel(panel);
 
-        MenuCreator menuCreator = MenuCreator.getInstanse();
+        frame = new MyFrame();
+        shapeState = new ShapeState(ShapeType.RECTANGULAR_SHAPE, Color.RED, true);
+        action = new ActionDraw(model, shapeState);
+
+        MenuCreator menuCreator = MenuCreator.getInstance();
         menuCreator.setController(this);
         menuCreator.setShapeState(shapeState);
-        JMenuBar menuBar = menuCreator.createMenu();
-        frame.setJMenuBar(menuBar);
-        JToolBar jToolBar = menuCreator.createToolBar(JToolBar.VERTICAL);
-        frame.add(jToolBar, BorderLayout.EAST);
+        frame.setJMenuBar(menuCreator.createMenu());
+        frame.add(menuCreator.createToolBar(JToolBar.VERTICAL), BorderLayout.EAST);
 
+        // Панель добавляется ровно один раз, и только после этого окно показывается.
         frame.setPanel(panel);
-        panel.revalidate();
-        panel.repaint();
+        frame.setVisible(true);
     }
 
     public static synchronized Controller getInstance() {
@@ -52,12 +48,15 @@ public class Controller {
         }
         return instance;
     }
-    public void mousePressed(Point point){
+
+    public void mousePressed(Point point) {
         action.mousePressed(point);
     }
-    public void mouseDragged(Point point){
+
+    public void mouseDragged(Point point) {
         action.mouseDragged(point);
     }
+
     public void draw(Graphics2D g2) {
         model.draw(g2);
     }
