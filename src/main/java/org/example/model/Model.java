@@ -7,35 +7,41 @@ import java.util.List;
 import java.util.Observable;
 
 public class Model extends Observable {
-    private MyShape draweableShape;
-    private final List<MyShape> shapeList;
+
+    public void setShapeList(List<MyShape> shapeList) {
+        this.shapeList = shapeList;
+    }
+
+    private MyShape drawableShape;
+    private List<MyShape> shapeList;
+    private Model shape;
 
     public Model() {
         this.shapeList = new ArrayList<>();
     }
 
-    public void setMyShape(MyShape myShape) {
-        this.draweableShape = myShape;
-    }
-
-    public void addShape(MyShape shape){
-        draweableShape = shape;
+    public void addShape(MyShape shape) {
         shapeList.add(shape);
+    }
+    public void setMyShape(MyShape myShape) {
+        this.drawableShape = myShape;
     }
 
     public void changeShape(Point2D x, Point2D y) {
-        draweableShape.setFrame(x, y);
+        drawableShape.setFrame(x, y);
         this.setChanged();
         this.notifyObservers();
     }
 
     public void draw(Graphics2D g) {
-        draweableShape.draw(g);
+        drawableShape.draw(g);
+        shapeList.forEach(shape -> shape.draw(g));
         for (MyShape shape : shapeList) {
             shape.draw(g);
         }
     }
 
     public void setDrawableShape(MyShape shape) {
+        drawableShape = shape;
     }
 }

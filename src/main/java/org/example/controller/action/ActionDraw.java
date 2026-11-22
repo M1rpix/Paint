@@ -1,9 +1,9 @@
 package org.example.controller.action;
 
-import org.example.model.Factory.ShapeState;
 import org.example.model.Model;
 import org.example.model.MyShape;
 import org.example.model.Factory.ShapeFactory;
+import org.example.model.Factory.ShapeState;
 
 import java.awt.*;
 
@@ -12,19 +12,19 @@ public class ActionDraw implements AppAction {
     private Point secondPoint;
     private Model model;
     private ShapeFactory shapeFactory;
+    private ShapeState shapeState;
 
-    private ShapeState state;
-
-    public ActionDraw(Model model) {
+    public ActionDraw(Model model, ShapeState shapeState) {
         this.model = model;
+        this.shapeState = shapeState;
         shapeFactory = ShapeFactory.getInstanse();
-        model.setMyShape(shapeFactory.createDefaultShape());
+        model.setDrawableShape(shapeFactory.createShape(shapeState));
     }
 
     @Override
     public void mousePressed(Point point) {
         firstPoint = point;
-        MyShape shape = shapeFactory.createDefaultShape();
+        MyShape shape = shapeFactory.createShape(shapeState);
         model.setDrawableShape(shape);
         model.addShape(shape);
     }

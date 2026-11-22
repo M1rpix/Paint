@@ -1,6 +1,5 @@
 package org.example.model.Factory;
 
-import org.example.model.Factory.ShapeType;
 import org.example.model.MyShape;
 import org.example.model.fill.Fill;
 import org.example.model.fill.FillBehavior;
