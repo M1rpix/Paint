@@ -41,8 +41,6 @@ public class Model extends Observable {
     }
 
     public void draw(Graphics2D g) {
-        // drawableShape уже лежит в shapeList, поэтому рисуем только список —
-        // иначе во время протяжки фигура рисуется дважды.
         for (MyShape shape : shapeList) {
             shape.draw(g);
         }

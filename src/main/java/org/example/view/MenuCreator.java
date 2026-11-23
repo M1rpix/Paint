@@ -6,6 +6,7 @@ import org.example.model.Factory.ShapeType;
 import org.example.view.menu.AppCommand;
 import org.example.view.menu.CommandActionListener;
 import org.example.view.menu.SwitchFill;
+import org.example.view.menu.SwitchShape;
 
 import javax.swing.*;
 import java.awt.*;
@@ -138,9 +139,14 @@ public class MenuCreator {
         ButtonGroup group = new ButtonGroup();
         JMenu shapeMenu = new JMenu("Фигура");
         JRadioButtonMenuItem squareItem = new JRadioButtonMenuItem("Прямоугольник", true);
-        squareItem.addActionListener(action -> shapeState.setShapeType(ShapeType.RECTANGULAR_SHAPE));
+        squareItem.addActionListener(new CommandActionListener(new SwitchShape(shapeState, ShapeType.RECTANGULAR_SHAPE, squareItem)));
         shapeMenu.add(squareItem);
         group.add(squareItem);
+
+        JRadioButtonMenuItem ellipseItem = new JRadioButtonMenuItem("Эллипс", true);
+        ellipseItem.addActionListener(new CommandActionListener(new SwitchShape(shapeState, ShapeType.ELLIPSE_SHAPE, ellipseItem)));
+        shapeMenu.add(ellipseItem);
+        group.add(ellipseItem);
 
         return shapeMenu;
     }

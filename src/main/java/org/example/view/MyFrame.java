@@ -11,8 +11,6 @@ public class MyFrame extends JFrame {
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setSize(500, 500);
         setLocationRelativeTo(null);
-        // setVisible(true) отсюда убран: окно показывается в Controller
-        // уже после того, как добавлены панель, меню и тулбар.
     }
 
     public void setPanel(MyPanel panel) {
