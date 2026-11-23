@@ -2,63 +2,122 @@ package org.example.model;
 
 import org.example.model.fill.Fill;
 import org.example.model.fill.FillBehavior;
+import org.example.model.geometry.ShapeGeometry;
 
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.awt.Shape;
+import java.awt.Stroke;
+import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
-import java.awt.geom.RectangularShape;
 
 public class MyShape {
     private final Color color;
-    private RectangularShape shape;
-    private FillBehavior fb;
+    private final FillBehavior fillBehavior;
+    private final Stroke stroke;
+    private final AffineTransform rotation;
+    private Shape unitShape;
+    private AffineTransform transform;
 
-    public MyShape(RectangularShape shape) {
-        this.shape = shape;
-        color = Color.GRAY;
-        fb = new Fill();
-        fb.setColor(color);
-        fb.setShape(shape);
+    public MyShape(Shape unitShape) {
+        this(unitShape, Color.GRAY, new Fill());
     }
 
-    // TODO: Попробовать вызовы через разные конструкторы, затем переделать создание через фабрику
-    public MyShape() {
-        color = Color.BLUE;
-        shape = new Rectangle2D.Double();
-        fb = new Fill();
-        fb.setColor(color);
-        fb.setShape(shape);
-    }
-
-    // TODO: Попробовать вызовы через разные конструкторы, затем переделать создание через фабрику
-    public MyShape(Color color, RectangularShape shape, FillBehavior fb) {
+    public MyShape(Shape unitShape, Color color, FillBehavior fillBehavior) {
+        this.unitShape = unitShape;
         this.color = color;
-        this.shape = shape;
-        this.fb = fb;
-        this.fb.setShape(shape);
-        this.fb.setColor(color);
+        this.fillBehavior = fillBehavior;
+        this.stroke = new BasicStroke(1.5f);
+        this.rotation = new AffineTransform();
+        this.transform = new AffineTransform();
     }
 
-    public void setFb(FillBehavior fb) {
-        this.fb = fb;
-        fb.setShape(shape);
-        fb.setColor(color);
+    public Color getColor() {
+        return color;
     }
 
-    public void setShape(RectangularShape shape) {
-        this.shape = shape;
-        // FillBehavior рисует ту фигуру, которую ему передали, поэтому её тоже обновляем.
-        if (fb != null) {
-            fb.setShape(shape);
+    public FillBehavior getFillBehavior() {
+        return fillBehavior;
+    }
+
+    public Stroke getStroke() {
+        return stroke;
+    }
+
+    public AffineTransform getTransform() {
+        return transform;
+    }
+
+    public AffineTransform getRotation() {
+        return rotation;
+    }
+
+    public Point2D getCenter() {
+        Rectangle2D bounds = getShape().getBounds2D();
+        return new Point2D.Double(bounds.getCenterX(), bounds.getCenterY());
+    }
+
+    public Shape getShape() {
+        AffineTransform full = new AffineTransform(transform);
+        full.concatenate(rotation);
+        return ShapeGeometry.transform(unitShape, full);
+    }
+
+    public Shape getBoundsShape() {
+        Shape shape = getShape();
+        if (rotation.isIdentity()) {
+            return shape;
         }
+        Rectangle2D bounds = shape.getBounds2D();
+        return new Rectangle2D.Double(
+                bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight());
     }
 
-    public void setFrame(Point2D x, Point2D y) {
-        shape.setFrameFromDiagonal(x, y);
+    public void setUnitShape(Shape unitShape) {
+        this.unitShape = unitShape;
     }
 
-    void draw(Graphics2D g) {
-        fb.draw(g);
+    public void translate(double dx, double dy) {
+        rotation.setToIdentity();
+        AffineTransform moved = AffineTransform.getTranslateInstance(dx, dy);
+        moved.concatenate(transform);
+        transform = moved;
+    }
+
+    public void setFrame(Point2D first, Point2D second) {
+        double width = Math.abs(second.getX() - first.getX());
+        double height = Math.abs(second.getY() - first.getY());
+        AffineTransform affine = new AffineTransform();
+        affine.translate(Math.min(first.getX(), second.getX()), Math.min(first.getY(), second.getY()));
+        affine.scale(width, height);
+        transform = affine;
+        rotation.setToIdentity();
+    }
+
+    public void rotate(double degrees) {
+        Point2D pivot = getCenter();
+        AffineTransform delta = ShapeGeometry.rotation(pivot, degrees);
+        AffineTransform combined = new AffineTransform(delta);
+        combined.concatenate(rotation);
+        combined.concatenate(transform);
+        Rectangle2D bounds = ShapeGeometry.transform(unitShape, combined).getBounds2D();
+        combined.preConcatenate(AffineTransform.getTranslateInstance(
+                Math.rint(bounds.getX()) - bounds.getX(),
+                Math.rint(bounds.getY()) - bounds.getY()));
+        transform = combined;
+        rotation.setToIdentity();
+    }
+
+    public boolean contains(Point2D point) {
+        return getShape().contains(point);
+    }
+
+    public void draw(Graphics2D g) {
+        Stroke oldStroke = g.getStroke();
+        g.setStroke(stroke);
+        fillBehavior.draw(g, getShape(), color);
+        g.setStroke(oldStroke);
     }
 }

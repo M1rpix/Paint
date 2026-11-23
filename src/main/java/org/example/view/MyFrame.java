@@ -8,6 +8,7 @@ public class MyFrame extends JFrame {
     private MyPanel panel;
 
     public MyFrame() {
+        super("MVC Paint");
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setSize(500, 500);
         setLocationRelativeTo(null);

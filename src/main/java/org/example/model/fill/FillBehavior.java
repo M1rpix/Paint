@@ -2,12 +2,9 @@ package org.example.model.fill;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
-import java.awt.geom.RectangularShape;
+import java.awt.Paint;
+import java.awt.Shape;
 
 public interface FillBehavior {
-    void draw(Graphics2D g);
-
-    void setColor(Color c);
-
-    void setShape(RectangularShape s);
+    void draw(Graphics2D g, Shape shape, Color color);
 }
