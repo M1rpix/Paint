@@ -1,11 +1,14 @@
 package org.example.controller;
 
+import org.example.controller.action.ActionChangeShape;
 import org.example.controller.action.ActionDraw;
 import org.example.controller.action.ActionSelect;
 import org.example.controller.action.AppAction;
+import org.example.controller.state.UndoMachine;
 import org.example.model.Factory.ShapeState;
 import org.example.model.Factory.ShapeType;
 import org.example.model.Model;
+import org.example.model.MyShape;
 import org.example.view.MenuCreator;
 import org.example.view.MyFrame;
 import org.example.view.MyPanel;
@@ -13,9 +16,10 @@ import org.example.view.MyPanel;
 import javax.swing.JToolBar;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Graphics2D;
 import java.awt.Point;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Controller {
 
@@ -26,7 +30,8 @@ public class Controller {
     private final MyFrame frame;
     private final MyPanel panel;
     private final ShapeState shapeState;
-    private final Map<String, AppAction> actions;
+    private final UndoMachine undoMachine;
+    private final ArrayList<AppAction> actions;
     private AppAction action;
 
     private Controller() {
@@ -37,18 +42,21 @@ public class Controller {
 
         frame = new MyFrame();
         shapeState = new ShapeState(ShapeType.RECTANGULAR_SHAPE, Color.RED, true);
+        undoMachine = new UndoMachine();
 
-        actions = new LinkedHashMap<>();
-        actions.put("draw", new ActionDraw(model, shapeState));
-        actions.put("select", new ActionSelect(model));
-        action = actions.get("draw");
+        actions = new ArrayList<>();
+        actions.add(new ActionDraw(model, shapeState));
+        actions.add(new ActionSelect(model));
+        action = actions.get(0);
 
         MenuCreator menuCreator = MenuCreator.getInstance();
         menuCreator.setController(this);
         menuCreator.setShapeState(shapeState);
+        // Меню создаём раньше панели инструментов: в нём рождаются пункты undo/redo,
+        // на которые тулбар (и UndoMachine) потом ссылается.
         frame.setJMenuBar(menuCreator.createMenu());
         JToolBar toolBar = menuCreator.createToolBar(JToolBar.VERTICAL);
-        frame.add(toolBar, BorderLayout.EAST);
+        frame.add(toolBar, BorderLayout.WEST);
 
         frame.setPanel(panel);
         frame.setVisible(true);
@@ -71,9 +79,23 @@ public class Controller {
 
     public void mouseReleased(Point point) {
         action.mouseReleased(point);
+
+        if (action instanceof ActionDraw) {
+            // Команда рисования ссылается на только что созданную фигуру.
+            saveToHistory(((ActionDraw) action).takeCompletedAction());
+        } else if (action instanceof ActionSelect) {
+            saveToHistory(((ActionSelect) action).createChangeAction());
+        }
     }
 
-    public void draw(java.awt.Graphics2D g2) {
+    private void saveToHistory(AppAction change) {
+        if (change == null) {
+            return;
+        }
+        undoMachine.add(change);
+    }
+
+    public void draw(Graphics2D g2) {
         model.draw(g2);
     }
 
@@ -81,39 +103,43 @@ public class Controller {
         return model;
     }
 
+    public UndoMachine getUndoMachine() {
+        return undoMachine;
+    }
+
     public AppAction getAction() {
         return action;
     }
 
-    public boolean isActionSelected(String actionKey) {
-        return actions.get(actionKey) == action;
+    public List<AppAction> getActions() {
+        return actions;
     }
 
-    public void switchAction(String actionKey) {
-        AppAction target = actions.get(actionKey);
+    public boolean isActionSelected(AppAction candidate) {
+        return candidate == action;
+    }
+
+    public void switchAction(AppAction target) {
         if (target == null || target == action) {
             return;
         }
-        model.setDrawableShape(null);
+        action.setEnabled(false);
         action = target;
-        model.fireChange();
-    }
-
-    public void switchActionDraw() {
-        switchAction("draw");
-    }
-
-    public void switchActionSelect() {
-        if (action instanceof ActionSelect) {
-            return;
+        action.setEnabled(true);
+        if (!(action instanceof ActionSelect)) {
+            model.setSelectedShape(null);
         }
-        model.setSelectedShape(null);
-        switchAction("select");
         model.fireChange();
     }
 
     public void rotateSelected(double degrees) {
+        MyShape selected = model.getSelectedShape();
+        if (selected == null) {
+            return;
+        }
+        MyShape before = selected.cloneShape();
         model.rotateSelected(degrees);
+        saveToHistory(new ActionChangeShape(model, selected, before, selected.cloneShape()));
     }
 
     public void rotateSelectedClockwise() {
@@ -126,5 +152,6 @@ public class Controller {
 
     public void clearAll() {
         model.clear();
+        undoMachine.reset();
     }
 }

@@ -10,16 +10,18 @@ import java.awt.Graphics2D;
 import java.awt.Shape;
 import java.awt.Stroke;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
+import java.util.Arrays;
 
 public class MyShape {
     private final Color color;
     private final FillBehavior fillBehavior;
     private final Stroke stroke;
-    private final AffineTransform rotation;
     private Shape unitShape;
     private AffineTransform transform;
+    private double rotationRadians;
 
     public MyShape(Shape unitShape) {
         this(unitShape, Color.GRAY, new Fill());
@@ -30,7 +32,6 @@ public class MyShape {
         this.color = color;
         this.fillBehavior = fillBehavior;
         this.stroke = new BasicStroke(1.5f);
-        this.rotation = new AffineTransform();
         this.transform = new AffineTransform();
     }
 
@@ -50,8 +51,8 @@ public class MyShape {
         return transform;
     }
 
-    public AffineTransform getRotation() {
-        return rotation;
+    public double getRotationDegrees() {
+        return Math.toDegrees(rotationRadians);
     }
 
     public Point2D getCenter() {
@@ -60,14 +61,16 @@ public class MyShape {
     }
 
     public Shape getShape() {
-        AffineTransform full = new AffineTransform(transform);
-        full.concatenate(rotation);
-        return ShapeGeometry.transform(unitShape, full);
+        return ShapeGeometry.transform(unitShape, fullTransform());
+    }
+
+    public Shape getFrameShape() {
+        return ShapeGeometry.transform(unitShape, transform);
     }
 
     public Shape getBoundsShape() {
         Shape shape = getShape();
-        if (rotation.isIdentity()) {
+        if (rotationRadians == 0) {
             return shape;
         }
         Rectangle2D bounds = shape.getBounds2D();
@@ -80,10 +83,20 @@ public class MyShape {
     }
 
     public void translate(double dx, double dy) {
-        rotation.setToIdentity();
+        if (rotationRadians != 0) {
+            bakeRotation();
+        }
         AffineTransform moved = AffineTransform.getTranslateInstance(dx, dy);
         moved.concatenate(transform);
         transform = moved;
+    }
+
+    public void setOffset(double x, double y) {
+        if (rotationRadians != 0) {
+            transform = transformedOutline();
+            rotationRadians = 0;
+        }
+        transform.setToTranslation(x, y);
     }
 
     public void setFrame(Point2D first, Point2D second) {
@@ -93,25 +106,53 @@ public class MyShape {
         affine.translate(Math.min(first.getX(), second.getX()), Math.min(first.getY(), second.getY()));
         affine.scale(width, height);
         transform = affine;
-        rotation.setToIdentity();
+        rotationRadians = 0;
     }
 
     public void rotate(double degrees) {
         Point2D pivot = getCenter();
         AffineTransform delta = ShapeGeometry.rotation(pivot, degrees);
-        AffineTransform combined = new AffineTransform(delta);
-        combined.concatenate(rotation);
-        combined.concatenate(transform);
-        Rectangle2D bounds = ShapeGeometry.transform(unitShape, combined).getBounds2D();
-        combined.preConcatenate(AffineTransform.getTranslateInstance(
-                Math.rint(bounds.getX()) - bounds.getX(),
-                Math.rint(bounds.getY()) - bounds.getY()));
-        transform = combined;
-        rotation.setToIdentity();
+        rotationRadians += Math.toRadians(degrees);
+        transform.preConcatenate(delta);
+        snapToPixelGrid();
     }
 
     public boolean contains(Point2D point) {
         return getShape().contains(point);
+    }
+
+    public MyShape cloneShape() {
+        MyShape copy = new MyShape(unitShape, color, fillBehavior);
+        copy.transform = new AffineTransform(transform);
+        copy.rotationRadians = rotationRadians;
+        return copy;
+    }
+
+    /**
+     * Копирует геометрию из другого снимка этой же фигуры.
+     * Нужно для undo/redo: фигура остаётся той же, меняется только её положение.
+     */
+    public void copyStateFrom(MyShape snapshot) {
+        this.unitShape = snapshot.unitShape;
+        this.transform = new AffineTransform(snapshot.transform);
+        this.rotationRadians = snapshot.rotationRadians;
+    }
+
+    public boolean sameState(MyShape other) {
+        if (other == null) {
+            return false;
+        }
+        if (this == other) {
+            return true;
+        }
+        if (Math.abs(rotationRadians - other.rotationRadians) > 1e-9) {
+            return false;
+        }
+        double[] m1 = new double[6];
+        double[] m2 = new double[6];
+        transform.getMatrix(m1);
+        other.transform.getMatrix(m2);
+        return Arrays.equals(m1, m2);
     }
 
     public void draw(Graphics2D g) {
@@ -119,5 +160,34 @@ public class MyShape {
         g.setStroke(stroke);
         fillBehavior.draw(g, getShape(), color);
         g.setStroke(oldStroke);
+    }
+
+    private AffineTransform fullTransform() {
+        AffineTransform full = new AffineTransform(transform);
+        if (rotationRadians != 0) {
+            Rectangle2D frame = ShapeGeometry.transform(unitShape, transform).getBounds2D();
+            full.rotate(rotationRadians, frame.getCenterX(), frame.getCenterY());
+        }
+        return full;
+    }
+
+    private void bakeRotation() {
+        transform = transformedOutline();
+        rotationRadians = 0;
+    }
+
+    private AffineTransform transformedOutline() {
+        AffineTransform full = fullTransform();
+        Shape rotated = ShapeGeometry.transform(unitShape, full);
+        Path2D.Double outline = new Path2D.Double(rotated, full);
+        unitShape = outline;
+        return new AffineTransform();
+    }
+
+    private void snapToPixelGrid() {
+        Rectangle2D bounds = getShape().getBounds2D();
+        double dx = Math.rint(bounds.getX()) - bounds.getX();
+        double dy = Math.rint(bounds.getY()) - bounds.getY();
+        transform.preConcatenate(AffineTransform.getTranslateInstance(dx, dy));
     }
 }

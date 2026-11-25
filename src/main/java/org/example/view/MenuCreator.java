@@ -1,20 +1,27 @@
 package org.example.view;
 
 import org.example.controller.Controller;
+import org.example.controller.action.ActionDraw;
+import org.example.controller.action.AppAction;
+import org.example.controller.state.UndoMachine;
 import org.example.model.Factory.ShapeState;
 import org.example.model.Factory.ShapeType;
 import org.example.view.menu.AppCommand;
 import org.example.view.menu.CommandActionListener;
 import org.example.view.menu.SwitchFill;
+import org.example.view.menu.SwitchRedo;
 import org.example.view.menu.SwitchShape;
+import org.example.view.menu.SwitchUndo;
+import org.example.view.menu.SwitchAction;
 
-import javax.swing.Action;
 import javax.swing.AbstractAction;
+import javax.swing.Action;
 import javax.swing.ButtonGroup;
 import javax.swing.ImageIcon;
 import javax.swing.JColorChooser;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
 import javax.swing.JRadioButtonMenuItem;
 import javax.swing.JToolBar;
 import javax.swing.KeyStroke;
@@ -33,8 +40,8 @@ public class MenuCreator {
     private Controller controller;
     private JRadioButtonMenuItem fillItem;
     private JRadioButtonMenuItem noFillItem;
-    private JRadioButtonMenuItem drawItem;
-    private JRadioButtonMenuItem selectItem;
+    private AbstractAction undoAction;
+    private AbstractAction redoAction;
 
     private MenuCreator() {
     }
@@ -63,6 +70,9 @@ public class MenuCreator {
         menuBar.add(createFillMenu());
         menuBar.add(createActionMenu());
         menuBar.add(createEditMenu());
+
+        UndoMachine undoMachine = controller.getUndoMachine();
+        undoMachine.setButtons(undoAction, redoAction);
         return menuBar;
     }
 
@@ -78,9 +88,9 @@ public class MenuCreator {
         ArrayList<AbstractAction> items = new ArrayList<>();
 
         items.add(createToolBarItem("draw", "Рисовать", "Режим рисования (F1)",
-                () -> selectAction("draw")));
+                () -> selectAction(controller.getActions().get(0))));
         items.add(createToolBarItem("select", "Выделять", "Выделение и перетаскивание (F2)",
-                () -> selectAction("select")));
+                () -> selectAction(controller.getActions().get(1))));
         items.add(createToolBarItem("rotate_left", "Повернуть влево", "Повернуть выбранную фигуру на 15° влево (Ctrl+[)",
                 controller::rotateSelectedCounterClockwise));
         items.add(createToolBarItem("rotate_right", "Повернуть вправо", "Повернуть выбранную фигуру на 15° вправо (Ctrl+])",
@@ -113,35 +123,35 @@ public class MenuCreator {
         return action;
     }
 
-    private void selectAction(String actionKey) {
-        if ("draw".equals(actionKey)) {
-            controller.switchActionDraw();
-            if (drawItem != null) {
-                drawItem.setSelected(true);
-            }
-        } else {
-            controller.switchActionSelect();
-            if (selectItem != null) {
-                selectItem.setSelected(true);
-            }
-        }
+    private AbstractAction createSwitchItem(String text, String toolTip,
+                                            String iconName, String disabledIconName, AppCommand command) {
+        ImageIcon icon = loadIcon("ico/" + iconName);
+        ImageIcon disabledIcon = loadIcon("ico/" + disabledIconName);
+
+        SwitchAction action = new SwitchAction(command, icon, disabledIcon);
+        action.putValue(Action.NAME, text);
+        action.putValue(Action.SHORT_DESCRIPTION, toolTip);
+        return action;
+    }
+
+    private void selectAction(AppAction target) {
+        controller.switchAction(target);
     }
 
     private JMenu createActionMenu() {
         JMenu actionMenu = new JMenu("Действие");
-
-        drawItem = new JRadioButtonMenuItem("Рисовать", true);
-        drawItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F1, 0));
-        drawItem.addActionListener(event -> selectAction("draw"));
-        actionMenu.add(drawItem);
-
-        selectItem = new JRadioButtonMenuItem("Выделять", false);
-        selectItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0));
-        selectItem.addActionListener(event -> selectAction("select"));
-        actionMenu.add(selectItem);
-
         ButtonGroup group = new ButtonGroup();
+
+        JRadioButtonMenuItem drawItem = new JRadioButtonMenuItem("Рисовать", true);
+        drawItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F1, 0));
+        drawItem.addActionListener(event -> selectAction(controller.getActions().get(0)));
+        actionMenu.add(drawItem);
         group.add(drawItem);
+
+        JRadioButtonMenuItem selectItem = new JRadioButtonMenuItem("Выделять", false);
+        selectItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0));
+        selectItem.addActionListener(event -> selectAction(controller.getActions().get(1)));
+        actionMenu.add(selectItem);
         group.add(selectItem);
 
         return actionMenu;
@@ -149,6 +159,26 @@ public class MenuCreator {
 
     private JMenu createEditMenu() {
         JMenu editMenu = new JMenu("Правка");
+
+        // Акселератор ставим на JMenuItem: AbstractAction.ACCELERATOR_KEY действует,
+        // только когда действие вставлено в меню напрямую как пункт.
+        JMenuItem undoItem = new JMenuItem("Отменить");
+        undoAction = createSwitchItem("Отменить", "Отменить последнее действие (Ctrl+Z)",
+                "undo_16x16.png", "undo_disabled_16x16.png",
+                new SwitchUndo(controller.getUndoMachine()));
+        undoItem.setAction(undoAction);
+        undoItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Z, KeyEvent.CTRL_DOWN_MASK));
+        editMenu.add(undoItem);
+
+        JMenuItem redoItem = new JMenuItem("Повторить");
+        redoAction = createSwitchItem("Повторить", "Повторить отменённое действие (Ctrl+Y)",
+                "redo_16x16.png", "redo_disabled_16x16.png",
+                new SwitchRedo(controller.getUndoMachine()));
+        redoItem.setAction(redoAction);
+        redoItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Y, KeyEvent.CTRL_DOWN_MASK));
+        editMenu.add(redoItem);
+
+        editMenu.addSeparator();
 
         JRadioButtonMenuItem rotateLeft = new JRadioButtonMenuItem("Повернуть влево на 15°");
         rotateLeft.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_OPEN_BRACKET, KeyEvent.CTRL_DOWN_MASK));

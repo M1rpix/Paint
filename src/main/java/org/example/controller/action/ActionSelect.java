@@ -11,9 +11,12 @@ public class ActionSelect implements AppAction {
 
     private final Model model;
     private MyShape draggedShape;
+    private MyShape beforeSnapshot;
+    private AppAction pendingChange;
     private Point lastPoint;
     private boolean rotating;
     private double lastAngle;
+    private boolean enabled = true;
 
     public ActionSelect(Model model) {
         this.model = model;
@@ -21,6 +24,9 @@ public class ActionSelect implements AppAction {
 
     @Override
     public void mousePressed(Point point) {
+        if (!enabled) {
+            return;
+        }
         lastPoint = point;
         MyShape selected = model.getSelectedShape();
 
@@ -28,11 +34,13 @@ public class ActionSelect implements AppAction {
             rotating = true;
             draggedShape = selected;
             lastAngle = angleToHandle(selected, point);
+            beforeSnapshot = selected.cloneShape();
             return;
         }
 
         rotating = false;
         draggedShape = model.findShape(point);
+        beforeSnapshot = draggedShape == null ? null : draggedShape.cloneShape();
         model.setSelectedShape(draggedShape);
     }
 
@@ -57,9 +65,60 @@ public class ActionSelect implements AppAction {
 
     @Override
     public void mouseReleased(Point point) {
+        if (draggedShape == null || beforeSnapshot == null || draggedShape.sameState(beforeSnapshot)) {
+            pendingChange = null;
+        } else {
+            pendingChange = new ActionChangeShape(model, draggedShape, beforeSnapshot, draggedShape.cloneShape());
+        }
         draggedShape = null;
+        beforeSnapshot = null;
         lastPoint = null;
         rotating = false;
+    }
+
+    /**
+     * Возвращает команду изменения фигуры, чтобы её можно было положить в историю undo.
+     * Забирает команду один раз — повторный вызов вернёт null.
+     */
+    public AppAction createChangeAction() {
+        AppAction change = pendingChange;
+        pendingChange = null;
+        return change;
+    }
+
+    @Override
+    public void execute() {
+    }
+
+    @Override
+    public void unexecute() {
+    }
+
+    @Override
+    public AppAction cloneAction() {
+        ActionSelect action = new ActionSelect(model);
+        action.draggedShape = draggedShape;
+        action.beforeSnapshot = beforeSnapshot;
+        action.rotating = rotating;
+        action.enabled = enabled;
+        return action;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+        if (!enabled) {
+            draggedShape = null;
+            beforeSnapshot = null;
+            pendingChange = null;
+            lastPoint = null;
+            rotating = false;
+        }
     }
 
     @Override

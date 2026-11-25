@@ -30,6 +30,7 @@ public class Model extends Observable {
 
     public void addShape(MyShape shape) {
         shapeList.add(shape);
+        selectedShape = shape;
         fireChange();
     }
 
@@ -59,6 +60,33 @@ public class Model extends Observable {
             }
         }
         return null;
+    }
+
+    public MyShape getLastShape() {
+        return shapeList.isEmpty() ? null : shapeList.get(shapeList.size() - 1);
+    }
+
+    public void removeLastShape() {
+        if (shapeList.isEmpty()) {
+            return;
+        }
+        MyShape removed = shapeList.remove(shapeList.size() - 1);
+        if (selectedShape == removed) {
+            selectedShape = null;
+        }
+    }
+
+    public void removeShape(MyShape shape) {
+        if (shape == null) {
+            return;
+        }
+        if (shape == getLastShape()) {
+            removeLastShape();
+            return;
+        }
+        if (shapeList.remove(shape) && selectedShape == shape) {
+            selectedShape = null;
+        }
     }
 
     public void setDrawableShape(MyShape shape) {

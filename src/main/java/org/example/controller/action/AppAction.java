@@ -4,6 +4,12 @@ import java.awt.Point;
 
 public interface AppAction {
 
+    void execute();
+
+    void unexecute();
+
+    AppAction cloneAction();
+
     default void mousePressed(Point point) {
     }
 
@@ -11,6 +17,13 @@ public interface AppAction {
     }
 
     default void mouseReleased(Point point) {
+    }
+
+    default boolean isEnabled() {
+        return true;
+    }
+
+    default void setEnabled(boolean enabled) {
     }
 
     default String getName() {
