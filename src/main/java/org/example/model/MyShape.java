@@ -10,7 +10,6 @@ import java.awt.Graphics2D;
 import java.awt.Shape;
 import java.awt.Stroke;
 import java.awt.geom.AffineTransform;
-import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.Arrays;
@@ -83,19 +82,10 @@ public class MyShape {
     }
 
     public void translate(double dx, double dy) {
-        if (rotationRadians != 0) {
-            bakeRotation();
-        }
-        AffineTransform moved = AffineTransform.getTranslateInstance(dx, dy);
-        moved.concatenate(transform);
-        transform = moved;
+        transform.preConcatenate(AffineTransform.getTranslateInstance(dx, dy));
     }
 
     public void setOffset(double x, double y) {
-        if (rotationRadians != 0) {
-            transform = transformedOutline();
-            rotationRadians = 0;
-        }
         transform.setToTranslation(x, y);
     }
 
@@ -110,11 +100,7 @@ public class MyShape {
     }
 
     public void rotate(double degrees) {
-        Point2D pivot = getCenter();
-        AffineTransform delta = ShapeGeometry.rotation(pivot, degrees);
-        rotationRadians += Math.toRadians(degrees);
-        transform.preConcatenate(delta);
-        snapToPixelGrid();
+        rotationRadians = normalizeRadians(rotationRadians + Math.toRadians(degrees));
     }
 
     public boolean contains(Point2D point) {
@@ -159,31 +145,24 @@ public class MyShape {
     }
 
     private AffineTransform fullTransform() {
-        AffineTransform full = new AffineTransform(transform);
-        if (rotationRadians != 0) {
-            Rectangle2D frame = ShapeGeometry.transform(unitShape, transform).getBounds2D();
-            full.rotate(rotationRadians, frame.getCenterX(), frame.getCenterY());
+        if (rotationRadians == 0) {
+            return new AffineTransform(transform);
         }
-        return full;
+        Rectangle2D frame = ShapeGeometry.transform(unitShape, transform).getBounds2D();
+        AffineTransform rotation = ShapeGeometry.rotation(
+                new Point2D.Double(frame.getCenterX(), frame.getCenterY()), getRotationDegrees());
+        rotation.concatenate(transform);
+        return rotation;
     }
 
-    private void bakeRotation() {
-        transform = transformedOutline();
-        rotationRadians = 0;
-    }
-
-    private AffineTransform transformedOutline() {
-        AffineTransform full = fullTransform();
-        Shape rotated = ShapeGeometry.transform(unitShape, full);
-        Path2D.Double outline = new Path2D.Double(rotated, full);
-        unitShape = outline;
-        return new AffineTransform();
-    }
-
-    private void snapToPixelGrid() {
-        Rectangle2D bounds = getShape().getBounds2D();
-        double dx = Math.rint(bounds.getX()) - bounds.getX();
-        double dy = Math.rint(bounds.getY()) - bounds.getY();
-        transform.preConcatenate(AffineTransform.getTranslateInstance(dx, dy));
+    private static double normalizeRadians(double radians) {
+        double fullTurn = 2 * Math.PI;
+        double normalized = radians % fullTurn;
+        if (normalized > Math.PI) {
+            normalized -= fullTurn;
+        } else if (normalized <= -Math.PI) {
+            normalized += fullTurn;
+        }
+        return normalized;
     }
 }

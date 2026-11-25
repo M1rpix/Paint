@@ -15,7 +15,7 @@ public class ActionSelect implements AppAction {
     private AppAction pendingChange;
     private Point lastPoint;
     private boolean rotating;
-    private double lastAngle;
+    private double rotationOffset;
     private boolean enabled = true;
 
     public ActionSelect(Model model) {
@@ -33,8 +33,9 @@ public class ActionSelect implements AppAction {
         if (selected != null && SelectionPainter.rotateHandleBounds(selected).contains(point)) {
             rotating = true;
             draggedShape = selected;
-            lastAngle = angleToHandle(selected, point);
             beforeSnapshot = selected.cloneShape();
+            rotationOffset = angleToHandle(selected, point)
+                    - angleToHandle(selected, SelectionPainter.rotateHandleCenter(selected));
             return;
         }
 
@@ -50,9 +51,7 @@ public class ActionSelect implements AppAction {
             return;
         }
         if (rotating) {
-            double angle = angleToHandle(draggedShape, point);
-            draggedShape.rotate(Math.toDegrees(angle - lastAngle));
-            lastAngle = angle;
+            applyRotation(draggedShape, point);
             model.fireChange();
             return;
         }
@@ -100,6 +99,7 @@ public class ActionSelect implements AppAction {
         action.draggedShape = draggedShape;
         action.beforeSnapshot = beforeSnapshot;
         action.rotating = rotating;
+        action.rotationOffset = rotationOffset;
         action.enabled = enabled;
         return action;
     }
@@ -129,5 +129,17 @@ public class ActionSelect implements AppAction {
     private double angleToHandle(MyShape shape, Point2D point) {
         Point2D center = shape.getCenter();
         return Math.atan2(point.getY() - center.getY(), point.getX() - center.getX());
+    }
+
+    private void applyRotation(MyShape shape, Point2D point) {
+        if (beforeSnapshot == null) {
+            return;
+        }
+        Point2D center = beforeSnapshot.getCenter();
+        Point2D pivot = SelectionPainter.rotateHandleCenter(beforeSnapshot);
+        double pointerAngle = Math.atan2(point.getY() - center.getY(), point.getX() - center.getX());
+        double pivotAngle = Math.atan2(pivot.getY() - center.getY(), pivot.getX() - center.getX());
+        shape.copyStateFrom(beforeSnapshot);
+        shape.rotate(Math.toDegrees(pointerAngle - rotationOffset - pivotAngle));
     }
 }
