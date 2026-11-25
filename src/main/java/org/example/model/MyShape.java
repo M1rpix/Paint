@@ -128,10 +128,6 @@ public class MyShape {
         return copy;
     }
 
-    /**
-     * Копирует геометрию из другого снимка этой же фигуры.
-     * Нужно для undo/redo: фигура остаётся той же, меняется только её положение.
-     */
     public void copyStateFrom(MyShape snapshot) {
         this.unitShape = snapshot.unitShape;
         this.transform = new AffineTransform(snapshot.transform);

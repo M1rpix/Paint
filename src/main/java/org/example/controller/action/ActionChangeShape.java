@@ -3,11 +3,6 @@ package org.example.controller.action;
 import org.example.model.Model;
 import org.example.model.MyShape;
 
-/**
- * Команда изменения уже нарисованной фигуры: перемещение или поворот.
- * Хранит два снимка геометрии — «до» и «после», поэтому одинаково хорошо
- * выполняется и отменяется.
- */
 public class ActionChangeShape implements AppAction {
 
     private final Model model;
